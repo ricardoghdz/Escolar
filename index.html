@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+        <title>App</title>
+
+        <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+        <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+        <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+        <script src="phonegap.js"></script>
+        
+        <style> 
+        #map {
+            height: 50%;
+            }
+
+            html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            }
+        </style>
+        <script>
+             var showPopover = function(target) {
+                document
+                .getElementById('popover')
+                .show(target);
+            };
+            
+            var hidePopover = function() {
+                document
+                .getElementById('popover')
+                .hide();
+            };
+            
+            function enviar(){
+                var v1 = document.getElementById("valor1").value;
+                var v2 = document.getElementById("valor2").value;
+
+                if(v1 == "" || v2 == ""){
+                    ons.notification.alert("Ingrese todos los datos");
+                }else{
+                    var xhttp = new XMLHttpRequest();
+                    xhttp.onreadystatechange = function(){
+                        if(this.readyState==4 && this.status == 200){
+                            var stringw = this.responseText;
+                            var frstchar = stringw.charAt(0);
+                            console.log(this.responseText);
+
+                            if(frstchar == "0"){
+                                document.getElementById("valor1").value = "";
+                                document.getElementById("valor2").value = "";
+                                verificaUsr(v1,v2,"");
+                            }else{
+                                var nameArr = stringw.split(',');
+                                v2 = nameArr[2];
+                                verificaUsr(v1,"",v2);
+                            }
+                        }
+                    };
+                xhttp.open("GET","https://dcc.000webhostapp.com/2018/datosudeg.php?codigo="+v1+"&nip="+v2,true);
+                xhttp.send();
+                }
+            }
+            
+            function verificaUsr(cod, con, nom){
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function(){
+                    if(this.readyState == 4 && this.status == 200){
+                        var stringw = this.responseText;
+                        var frstchar = stringw.charAt(0);
+                        console.log(this.responseText);
+                                                            
+                        if(frstchar == "0" && con == ""){
+                            showPopover(document.getElementById("boton"));//Muestras el popup en el boton
+                            document.getElementById("nombre").style.display = "none";//ocultar los label
+                            document.getElementById("codigo").style.display = "none";//Ocultar los label
+                            document.getElementById("contra").style.display = "none";
+                            document.getElementById("nombre").innerHTML = nom;
+                            document.getElementById("codigo").innerHTML = cod;
+                        }else if(frstchar == "1"){
+                            var myNavigator = document.getElementById("myNavigator");
+                            myNavigator
+                                .replacePage("pageMap.html")
+                                .then(function(){
+                                var nameArr = stringw.split(',');
+                                var codNue = nameArr[1];
+                                var nomNue = nameArr[2];
+                                var plac = nameArr[3];
+                                document.getElementById("centMap").innerHTML = "Usuario: " + nomNue;
+                                localStorage.setItem("codigo", codNue);
+                                localStorage.setItem("nombre", nomNue);
+                                localStorage.setItem("placas", plac);
+                            });
+                        }else{
+                            inscribirse();
+                        }
+                    }
+                };
+                xhttp.open("GET","https://primerapr.000webhostapp.com/valUsr.php?codigo="+cod+"&password="+con,true);
+                xhttp.send();
+            }
+            
+            function continuar(){
+                var nom = document.getElementById("nombre").innerHTML;
+                var cod = document.getElementById("codigo").innerHTML;
+                var pla = document.getElementById("placas").value;
+                var tel = document.getElementById("telefono").value;
+                hidePopover();//Esconder el pop para poder ver el mensaje
+
+                var patronPlaca = new RegExp("(^[A-Z]{3}-[1-9]{2}-[0-9]{2}$)|(^[A-Z]{2}-[0-9]{2}-[0-9]{3}$)");
+
+                if(pla == "" && tel == ""){
+                    ons.notification.alert("Llene el formulario");
+                }else{
+                    if(pla != ""){
+                        if(patronPlaca.test(pla)){
+                            if(tel != ""){
+                                var xhttp = new XMLHttpRequest();
+                                xhttp.onreadystatechange = function(){
+                                    if(this.readyState==4 && this.status == 200){
+                                        var stringw = this.responseText;
+                                        var frstchar = stringw.charAt(0);
+
+                                        if(frstchar == "0"){
+                                            ons.notification.alert("Error de registro");
+                                        }else{
+                                            var myNavigator = document.getElementById("myNavigator");
+                                            localStorage.setItem("placas", pla);
+                                            myNavigator
+                                            .replacePage("pageMap.html")
+                                            .then(function(){
+                                                var pas1 = localStorage.getItem("codigo");
+                                                var pas2 = localStorage.getItem("nombre");
+                                                document.getElementById("centMap").innerHTML = "Usuario: " + pas2;
+                                            });
+                                        }
+                                    }
+                                };
+                            xhttp.open("GET","http://cuceiMobile.tech/Escuela/altaU.php?codigo=" +cod+"&nombre="+nom+"&placas="+pla+"&telefono="+tel,true);
+                            xhttp.send();
+                            }else{
+                                ons.notification.alert("Telefono no ingresado");
+                            }
+                        }else{
+                            ons.notification.alert("Formato de placas incorrecto: AAA-12-12 o AA-12-123");
+                        }
+                        
+                    }else{
+                        ons.notification.alert("Placas no ingresadas");
+                    }
+                }     
+            }
+            
+            function inscribirse(){
+                var myNavigator = document.getElementById("myNavigator");
+                myNavigator
+                .replacePage("pageIns.html")
+                .then(function(){
+                    var cod = Math.round(Math.random()*10000);//Numeros aleatorios de 0 a 10000
+                    document.getElementById("codigoN").innerHTML = cod;
+                });
+            }
+            
+            function registrar(){
+                var cod = document.getElementById("codigoN").innerHTML;
+                var nom = document.getElementById("nombre").value;
+                var pla = document.getElementById("placas").value;
+                var tel = document.getElementById("telefono").value;
+                var con = document.getElementById("contra").value;
+
+                var patronPlaca = new RegExp("(^[A-Z]{3}-[1-9]{2}-[0-9]{2}$)|(^[A-Z]{2}-[0-9]{2}-[0-9]{3}$)");
+
+                if(nom == "" && pla == "" && tel == "" && con == ""){
+                    ons.notification.alert("Ningun dato ingresado");
+                }else{
+                    if(nom != ""){
+                        if(pla != ""){
+                            if(patronPlaca.test(pla)){
+                                if(tel != ""){
+                                    if(con != ""){
+                                        var xhttp = new XMLHttpRequest();
+                                        xhttp.onreadystatechange = function(){
+                                            if(this.readyState==4 && this.status == 200){
+                                                var stringw = this.responseText;
+                                                var frstchar = stringw.charAt(0);
+
+                                                if(frstchar == "0"){
+                                                    ons.notification.alert("Error de registro");
+                                                }else{
+                                                    localStorage.setItem("codigo", cod);
+                                                    localStorage.setItem("nombre", nom);
+                                                    var myNavigator = document.getElementById("myNavigator");
+                                                    localStorage.setItem("placas", pla);
+                                                    myNavigator
+                                                    .replacePage("pageMap.html")
+                                                    .then(function(){
+                                                        var pas1 = localStorage.getItem("codigo");
+                                                        var pas2 = localStorage.getItem("nombre");
+                                                        document.getElementById("centMap").innerHTML = "Usuario: " + pas2;
+                                                    });
+                                                }
+                                            }
+                                        };
+                                    xhttp.open("GET","http://cuceiMobile.tech/Escuela/altaU.php?codigo=" +cod+"&nombre="+nom+"&placas="+pla+"&telefono="+tel+"&password="+con,true);
+                                    xhttp.send();
+                                    }else{
+                                        ons.notification.alert("Contraseña no ingresada");
+                                    }
+                                }else{
+                                    ons.notification.alert("Telefono no ingresado");
+                                }
+                            }else{
+                                ons.notification.alert("Formato de placas incorrecto: AAA-12-12 o AA-12-123");
+                            }
+                        }else{
+                            ons.notification.alert("Placas no ingresadas");
+                        }
+                    }else{
+                        ons.notification.alert("Nombre no ingresado");
+                    }
+                }  
+            }
+            
+            function cambiar(){
+                setTimeout(function(){//Realiza una determinada opción después de ciertos milisegundos
+                    var myNavigator = document.getElementById("myNavigator");
+                    myNavigator.replacePage("pageLo.html")
+                },3000);
+            }
+            
+            function salir(){
+                localStorage.removeItem("nombre");
+                localStorage.removeItem("codigo");
+                localStorage.removeItem("placas");
+                 var myNavigator = document.getElementById("myNavigator");
+                 myNavigator.replacePage("pageLo.html");
+            }
+            
+            function compare(){
+                if(localStorage.getItem("codigo") != null){
+                    var myNavigator = document.getElementById("myNavigator");
+                    myNavigator
+                    .replacePage("pageMap.html")
+                    .then(function(){
+                        var pas1 = localStorage.getItem("codigo");
+                        var pas2 = localStorage.getItem("nombre");
+
+                        document.getElementById("centMap").innerHTML = "Usuario: " + pas2;
+                    });
+                }else{
+                    var myNavigator = document.getElementById("myNavigator");
+                    myNavigator
+                    .replacePage("splash.html")
+                }
+            }
+            
+            function agregarL(){
+                for(i in array_marcadores){//Elimina los marcadores
+                    array_marcadores[i].setMap(null);
+                }
+                array_marcadores = [];
+                navigator.geolocation.getCurrentPosition(onSuccess, onError);
+            }
+
+            function eliminarL(){
+                for(i in array_marcadores){//Elimina los marcadores
+                    array_marcadores[i].setMap(null);
+                }
+                array_marcadores = [];
+
+                var plac = localStorage.getItem("placas");
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function(){
+                    if(this.readyState==4 && this.status == 200){
+                        var stringw = this.responseText;
+                        var frstchar = stringw.charAt(0);
+                        if(frstchar == "0"){
+                            ons.notification.alert("No tienes lugar asignado");
+                        }else{
+                            ons.notification.alert("Lugar desocupado");
+                            refresh();
+                        }
+                    }
+                };
+                xhttp.open("GET","https://primerapr.000webhostapp.com/eliminaMark.php?placas="+plac,true);
+                xhttp.send();
+            }
+
+            document.addEventListener("deviceready", onDeviceReady, false);
+
+            function onDeviceReady(){
+                ons.notification.alert("navigator.geolocation works well");
+                navigator.geolocation.getCurrentPosition(geolocationSuccess, [geolocationError], [geolocationOptions]);
+            }
+
+            function onError(error){
+                alert('code: '  + error.code +    '\n'+
+                      'message' + error.message + '\n');
+            }
+
+            var onSuccess = function(position){
+                var plac = localStorage.getItem("placas");
+                var lat = position.coords.latitude;
+                var lon = position.coords.longitude;
+
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function(){
+                    if(this.readyState==4 && this.status == 200){
+                        var stringw = this.responseText;
+                        var frstchar = stringw.charAt(0);
+
+                        if(frstchar == "0"){
+                            ons.notification.alert("Error");
+                        }else{
+                            ons.notification.alert("Lugar ocupado");
+                            refresh();
+                        }
+                    }
+                };
+                xhttp.open("GET","https://primerapr.000webhostapp.com/insertaMark.php?placas="+plac+"&lat="+lat+"&lon="+lon,true);
+                xhttp.send();
+            };
+        </script>
+    </head>
+    <body onload="compare()">
+        <ons-navigator swipeable id="myNavigator"></ons-navigator>
+        
+        <template id = "splash.html">
+            <ons-page id = "slpash">
+                <p>
+                    <center>
+                        <br>
+                        <br>
+                        <img src="http://www.cusur.udg.mx/es/sites/default/files/adjuntos/logo_udg-gris.png" width="300" height="450" onload="cambiar()"> <!--///Onload se ejecuta despues de cargar la //imagen-->
+                        <br>
+                        <div class="progress-bar">
+                                <div class="progress-bar__primary" style="width: 30%"></div>
+                              </div>
+                              <br />
+                              <div class="progress-bar">
+                                <div class="progress-bar__primary" style="width:20%"></div>
+                                <div class="progress-bar__secondary" style="width:76%"></div>
+                              </div>
+                              <br />
+                              <div class="progress-bar progress-bar--indeterminate">
+                              </div>
+                    </center>
+                </p>
+            </ons-page>
+        </template>
+        
+        <template id="pageLo.html">
+          <ons-page id="pageLo">
+              
+            <p>
+            <center></center>
+            <div style="height: 100px; padding: 1px 0 0 0;">
+                    <div class="card">
+                        <div class="card__content">
+                                <center>
+                                <h1>Estacionamiento</h1>
+                                <h2>UdeG CUCEI</h2>
+                                <br>
+                                <img src = "https://www.cstatic-images.com/car-pictures/xl/USC60HOC021A121001.png" width="300" height="200">
+                                <br>
+                                <ons-input input-id="valor1" placeholder="Codigo" type="number" modifier= "underbar">
+                                </ons-input>
+                                <br>
+                                <br>
+                                <ons-input input-id="valor2" placeholder="Contraseña" type="password" modifier= "underbar">
+                                </ons-input>
+                                <br>
+                                <br>
+                                <ons-button id = "boton" onclick = "enviar()">
+                                    <ons-ripple></ons-ripple>
+                                    Entrar</ons-button>
+                                <br>
+                                <br>
+                                <ons-button onclick = "inscribirse()" modifier="outline" style="margin: 6px 0">
+                                    <ons-ripple></ons-ripple>
+                                    Inscribirse</ons-button>
+                                </center>
+                        </div>
+                    </div>
+            </div>
+            </center>
+            </p>
+
+          </ons-page>
+        </template>
+        <ons-popover direction="up" id="popover">
+          <div style="padding: 15px; text-align: center;">
+            <p>
+                <center>                
+                    <h1>Ingresa los datos</h1>
+                </center>
+                <label id = "nombre"></label>
+                <label id = "codigo"></label>
+                <label id = "contra"></label>
+                <ons-input input-id = "placas" placeholder="Placas" type="text" modifier= "underbar"></ons-input>
+                <br>
+                <br>
+                <ons-input input-id = "telefono" placeholder="Telefono" type="number"modifier= "underbar"></ons-input>
+                <br>
+                <br>
+                <ons-button onclick = "continuar()">Continuar</ons-button>
+                <br>
+                <br>
+                <ons-button onclick="hidePopover()">Cancelar</ons-button>
+            </p>
+            </div>
+        </ons-popover>
+
+        <template id="pageIns.html">
+            <ons-page id = "pageIns">
+                <ons-toolbar>
+                    <div class="left button--quiet" onclick="salir()">salir</div>
+                    <div class="center" id="cent">Registro</div>
+                </ons-toolbar>
+                <p>
+                    <div style="height: 100px; padding: 1px 0 0 0;">
+                            <div class="card">
+                                <div class="card__content">
+                    <center>
+                        <h3>Ingresa los datos correspondientes</h3>
+                    <output>Tu codigo es: </output>
+                    <label id = "codigoN"></label>
+                    <br>
+                    <br>
+                    <ons-input input-id = "nombre" placeholder = "Nombre" type = "text" modifier = "underbar"></ons-input>
+                    <br>
+                    <br>
+                    <ons-input input-id = "placas" placeholder = "Placas" type = "text" modifier = "underbar"></ons-input>
+                    <br>
+                    <br>
+                    <ons-input input-id = "telefono" placeholder =  "Telefono" type = "number" modifier = "underbar"></ons-input>
+                    <br>
+                    <br>
+                    <ons-input input-id = "contra" placeholder = "Contraseña" type = "password" modifier = "underbar"></ons-input>
+                    <br>
+                    <br>
+                    <ons-button onclick = "registrar()">Registrar</ons-button>
+                    </center>
+                            </div>
+                        </div>
+                    </div>
+                </p>
+            </ons-page>
+        </template>
+        
+        <template id="pageMap.html">
+            <ons-page id="pageMap.html">
+                <ons-toolbar>
+                    <div class="right button--quiet" style="font-size: small;" onclick="salir()">cerrar sesión</div>
+                    <div class="center" id="centMap" style="font-size: small;"></div>
+                </ons-toolbar>
+                <div id="map" style="width: 100%; height: 50%;" ></div>
+                <script>
+                    var map;
+                    var array_marcadores = new Array();
+
+                    function refresh(){
+                        var xhttp = new XMLHttpRequest();
+                        xhttp.onreadystatechange = function(){
+                            if(this.readyState==4 && this.status == 200){
+                                var stringR = this.responseText;
+                                var frstchar = stringR.charAt(0);
+                                    
+                                if(frstchar == "0"){
+                                    ons.notification.alert("No hay lugares ocupados");
+                                }else{
+                                    var cont = 1;
+                                    var nameArr = stringR.split(',');
+                                    var marker;
+                                    while(nameArr[cont] != "-1"){
+                                        var placas = nameArr[cont];
+                                        var lat = nameArr[cont + 1];
+                                        var lon = nameArr[cont + 2];
+                                        var ocupado = nameArr[cont + 3];
+                                        
+                                        var numLa = parseFloat(lat);
+                                        var numLo = parseFloat(lon);
+                                        console.log(stringR);
+                                        
+                                        var contenido = "Placas: " + placas + " Ocupado";
+                                        marker = new google.maps.Marker({
+                                            position: {lat: numLa,lng: numLo},
+                                            map: map,
+                                            title: contenido,
+                                        });
+                                        
+                                        marker['infowindow'] = new google.maps.InfoWindow({
+                                            content: contenido,
+                                            maxWidth: 250,
+                                            position: {lat: numLa,lng: numLo},
+                                        });
+                                        
+                                        google.maps.event.addListener(marker, 'click', function() {
+                                            this['infowindow'].open(map, this);
+                                        });
+
+                                        array_marcadores.push(marker);
+                                        cont = cont + 4;
+                                    }
+                                }
+                            }
+                        }
+                         xhttp.open("GET","https://primerapr.000webhostapp.com/coordenadasL.php",true);
+                        xhttp.send();
+                    }
+
+                    function initMap() {
+                        map = new google.maps.Map(document.getElementById("map"), {
+                          center: {lat: 20.6548735, lng: -103.3250635},
+                          zoom: 18
+                        });
+                                            
+                        var xhttp = new XMLHttpRequest();
+                        xhttp.onreadystatechange = function(){
+                            if(this.readyState==4 && this.status == 200){
+                                var stringR = this.responseText;
+                                var frstchar = stringR.charAt(0);
+                                    
+                                if(frstchar == "0"){
+                                    ons.notification.alert("No hay lugares ocupados");
+                                }else{
+                                    var cont = 1;
+                                    var nameArr = stringR.split(',');
+                                    var marker;
+                                    while(nameArr[cont] != "-1"){
+                                        var placas = nameArr[cont];
+                                        var lat = nameArr[cont + 1];
+                                        var lon = nameArr[cont + 2];
+                                        var ocupado = nameArr[cont + 3];
+                                        
+                                        var numLa = parseFloat(lat);
+                                        var numLo = parseFloat(lon);
+                                        console.log(stringR);
+                                        
+                                        var contenido = "Placas: " + placas + " Ocupado";
+                                        marker = new google.maps.Marker({
+                                            position: {lat: numLa,lng: numLo},
+                                            map: map,
+                                            title: contenido,
+                                        });
+                                        
+                                        marker['infowindow'] = new google.maps.InfoWindow({
+                                            content: contenido,
+                                            maxWidth: 250,
+                                            position: {lat: numLa,lng: numLo},
+                                        });
+                                        
+                                        google.maps.event.addListener(marker, 'click', function() {
+                                            this['infowindow'].open(map, this);
+                                        });
+
+                                        array_marcadores.push(marker);
+                                        cont = cont + 4;
+                                    }
+                                }
+                            }
+                        }
+                         xhttp.open("GET","https://primerapr.000webhostapp.com/coordenadasL.php",true);
+                        xhttp.send();
+                    }
+                </script>
+                    <script  async defe src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD33zzP87owrlPjChU2TKfKw-cCcr_1X_c&callback=initMap"></script>
+                <p>
+                    <center>
+                    <ons-button onclick="agregarL()">Ocupar lugar</ons-button>
+                    <br>
+                    <br>
+                    <ons-button onclick="eliminarL()" modifier="outline" style="margin: 6px 0"> Desocupar lugar</ons-button>
+                    </center>
+                </p>
+            </ons-page>
+        </template>
+    </body>
+</html>
